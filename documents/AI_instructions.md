@@ -16,7 +16,7 @@ use type declaration for functions return and parameters
 # Test Generation instructions #
 
 use test driven development.
-for each feature or function write a test before implementing the code
+for each non user interface feature or function write a test before implementing the code
 propose the tests in the format of pytest
 
 name tests using the format test_should{expected result}_given{input data or action} where the words in {} depend on each test
