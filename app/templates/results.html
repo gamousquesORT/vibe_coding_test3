@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Results - Quiz Grades Processor{% endblock %}
+
+{% block header %}Quiz Results{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Quiz Parameters</h2>
+                <div class="row">
+                    <div class="col-md-4">
+                        <p><strong>Original Maximum Score:</strong> {{ quiz_data.parameters.original_max_score }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>New Maximum Score:</strong> {{ quiz_data.parameters.new_max_score }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>Original Question Value:</strong> {{ quiz_data.parameters.original_question_value }}</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <p><strong>Total Questions:</strong> {{ quiz_data.parameters.total_questions }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>New Question Value:</strong> {{ quiz_data.parameters.new_question_value }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>Verification:</strong> 
+                            {% if quiz_data.parameters.total_questions * quiz_data.parameters.new_question_value == quiz_data.parameters.new_max_score %}
+                                <span class="text-success">Valid ✓</span>
+                            {% else %}
+                                <span class="text-danger">Invalid ✗</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Student Results</h2>
+                
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                <th>Student ID</th>
+                                <th>Team</th>
+                                <th>Original Score</th>
+                                <th>Converted Score</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in quiz_data.students %}
+                            <tr>
+                                <td>{{ student.student_name }}</td>
+                                <td>{{ student.student_id }}</td>
+                                <td>{{ student.team }}</td>
+                                <td>{{ student.original_score }}</td>
+                                <td>{{ student.converted_score }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Detailed Question Analysis</h2>
+                
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Student Name</th>
+                                {% for q_num in question_numbers %}
+                                <th>Q{{ q_num }} Response</th>
+                                <th>Q{{ q_num }} Score</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for student in quiz_data.students %}
+                            <tr>
+                                <td>{{ student.student_name }}</td>
+                                {% for q_num in question_numbers %}
+                                <td>{{ student.responses.get(q_num, "") }}</td>
+                                <td>{{ student.scores.get(q_num, 0) }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12 text-center">
+        <a href="/upload" class="btn btn-primary">Process Another File</a>
+    </div>
+</div>
+{% endblock %}

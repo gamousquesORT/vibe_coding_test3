@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Quiz Grades Processor{% endblock %}
+
+{% block header %}Welcome to Quiz Grades Processor{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">About This Application</h2>
+                <p class="card-text">
+                    This application helps you process quiz grades from Excel or CSV files and convert scores from one scale to another.
+                </p>
+                
+                <h3>Features:</h3>
+                <ul>
+                    <li>Upload Excel or CSV files containing quiz data</li>
+                    <li>Convert quiz scores from one scale to another</li>
+                    <li>View detailed information about student responses and scores</li>
+                    <li>See the converted scores for each student</li>
+                </ul>
+                
+                <h3>How to Use:</h3>
+                <ol>
+                    <li>Click on the "Upload File" button below or in the navigation bar</li>
+                    <li>Select your Excel or CSV file containing quiz data</li>
+                    <li>Enter the original maximum score, new maximum score, and original question value</li>
+                    <li>Submit the form to process the data</li>
+                    <li>View the results showing the converted scores</li>
+                </ol>
+                
+                <div class="text-center mt-4">
+                    <a href="/upload" class="btn btn-primary btn-lg">Upload File</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

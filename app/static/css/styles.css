@@ -1,0 +1,32 @@
+/* Additional custom styles */
+.table-responsive {
+    overflow-x: auto;
+}
+
+.card {
+    margin-bottom: 1.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-title {
+    color: #0d6efd;
+    margin-bottom: 1rem;
+}
+
+.btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+}
+
+.form-label {
+    font-weight: 500;
+}
+
+.alert {
+    margin-bottom: 1rem;
+}

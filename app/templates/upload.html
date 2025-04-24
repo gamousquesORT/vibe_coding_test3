@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Upload File - Quiz Grades Processor{% endblock %}
+
+{% block header %}Upload Quiz Data{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="card-title">Upload Quiz Data File</h2>
+                
+                {% if error %}
+                <div class="alert alert-danger" role="alert">
+                    {{ error }}
+                </div>
+                {% endif %}
+                
+                <form action="/upload" method="post" enctype="multipart/form-data" class="mt-4">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Select Excel or CSV File</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".xlsx,.xls,.csv" required>
+                        <div class="form-text">Upload a file containing quiz data with columns for Team, Student Name, Score, and question responses/scores.</div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="original_max_score" class="form-label">Original Maximum Score</label>
+                            <input type="number" class="form-control" id="original_max_score" name="original_max_score" step="0.01" min="0" required>
+                            <div class="form-text">The maximum possible score on the original scale (e.g., 15).</div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="new_max_score" class="form-label">New Maximum Score</label>
+                            <input type="number" class="form-control" id="new_max_score" name="new_max_score" step="0.01" min="0" required>
+                            <div class="form-text">The desired maximum score on the new scale (e.g., 10).</div>
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="original_question_value" class="form-label">Original Question Value</label>
+                            <input type="number" class="form-control" id="original_question_value" name="original_question_value" step="0.01" min="0" required>
+                            <div class="form-text">The value of each question on the original scale (e.g., 3).</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-text">
+                            <strong>Note:</strong> The original maximum score should be divisible by the original question value.
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Process Data</button>
+                        <a href="/" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
