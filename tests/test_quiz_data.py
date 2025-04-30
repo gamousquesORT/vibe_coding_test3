@@ -1,114 +1,137 @@
+"""
+Tests for quiz data models.
+"""
 import pytest
-import pandas as pd
-from app.models.quiz_data import Student, QuizParameters, QuizData
+from app.models.quiz_data import QuizParameters, StudentResponse, ProcessedResponse
 
 
-def test_should_calculate_total_questions_given_quiz_parameters():
+def test_should_calculate_total_questions_given_valid_parameters():
+    """Test that total_questions is calculated correctly."""
     # Arrange
-    params = QuizParameters(
-        original_max_score=15.0,
-        new_max_score=10.0,
-        original_question_value=3.0
+    quiz_params = QuizParameters(
+        quiz_name="Test Quiz",
+        original_max_score=15,
+        new_max_score=10,
+        original_question_value=3
     )
     
     # Act
-    total_questions = params.total_questions
+    total_questions = quiz_params.total_questions
     
     # Assert
-    assert total_questions == 5.0
+    assert total_questions == 5
 
 
-def test_should_calculate_new_question_value_given_quiz_parameters():
+def test_should_calculate_new_question_value_given_valid_parameters():
+    """Test that new_question_value is calculated correctly."""
     # Arrange
-    params = QuizParameters(
-        original_max_score=15.0,
-        new_max_score=10.0,
-        original_question_value=3.0
+    quiz_params = QuizParameters(
+        quiz_name="Test Quiz",
+        original_max_score=15,
+        new_max_score=10,
+        original_question_value=3
     )
     
     # Act
-    new_question_value = params.new_question_value
+    new_question_value = quiz_params.new_question_value
     
     # Assert
-    assert new_question_value == 2.0
+    assert new_question_value == 2
 
 
-def test_should_convert_student_score_given_quiz_parameters():
+def test_should_verify_calculation_given_valid_parameters():
+    """Test that verify_calculation returns True for valid parameters."""
     # Arrange
-    params = QuizParameters(
-        original_max_score=15.0,
-        new_max_score=10.0,
-        original_question_value=3.0
+    quiz_params = QuizParameters(
+        quiz_name="Test Quiz",
+        original_max_score=15,
+        new_max_score=10,
+        original_question_value=3
     )
     
-    # Create a sample DataFrame
-    data = {
-        "Team": ["Team A"],
-        "Student Name": ["John Doe"],
-        "First Name": ["John"],
-        "Last Name": ["Doe"],
-        "Email Address": ["john.doe@example.com"],
-        "Student ID": ["12345"],
-        "Score": [12.0],
-        "1_Response": ["Answer 1"],
-        "1_Score": [3.0],
-        "2_Response": ["Answer 2"],
-        "2_Score": [3.0],
-        "3_Response": ["Answer 3"],
-        "3_Score": [3.0],
-        "4_Response": ["Answer 4"],
-        "4_Score": [3.0],
-        "5_Response": ["Answer 5"],
-        "5_Score": [0.0]
-    }
-    df = pd.DataFrame(data)
-    
     # Act
-    quiz_data = QuizData.from_dataframe(df, params)
+    result = quiz_params.verify_calculation()
     
     # Assert
-    assert len(quiz_data.students) == 1
-    student = quiz_data.students[0]
+    assert result is True
+
+
+def test_should_verify_calculation_given_invalid_parameters():
+    """Test that verify_calculation returns False for invalid parameters."""
+    # Arrange
+    # This is an invalid setup where the calculation won't verify
+    # (15/3) * 9.9 != 10
+    quiz_params = QuizParameters(
+        quiz_name="Test Quiz",
+        original_max_score=15,
+        new_max_score=10,
+        original_question_value=3
+    )
+    
+    # Manually modify new_max_score to create an invalid state
+    # This is just for testing purposes
+    quiz_params.new_max_score = 9.9
+    
+    # Act
+    result = quiz_params.verify_calculation()
+    
+    # Assert
+    assert result is False
+
+
+def test_should_create_student_response_given_valid_data():
+    """Test that StudentResponse can be created with valid data."""
+    # Arrange & Act
+    student = StudentResponse(
+        team="Team A",
+        student_name="John Doe",
+        first_name="John",
+        last_name="Doe",
+        email="john.doe@example.com",
+        student_id="12345",
+        original_score=12.5,
+        responses={1: "Answer 1", 2: "Answer 2"},
+        question_scores={1: 2.5, 2: 3.0}
+    )
+    
+    # Assert
     assert student.team == "Team A"
     assert student.student_name == "John Doe"
-    assert student.original_score == 12.0
-    assert student.converted_score == 8.0  # 12 * (10/15) = 8
-    assert len(student.responses) == 5
-    assert len(student.scores) == 5
-    assert student.scores[1] == 3.0
-    assert student.scores[5] == 0.0
-    assert student.responses[1] == "Answer 1"
+    assert student.first_name == "John"
+    assert student.last_name == "Doe"
+    assert student.email == "john.doe@example.com"
+    assert student.student_id == "12345"
+    assert student.original_score == 12.5
+    assert student.responses == {1: "Answer 1", 2: "Answer 2"}
+    assert student.question_scores == {1: 2.5, 2: 3.0}
 
 
-def test_should_handle_missing_values_given_incomplete_data():
-    # Arrange
-    params = QuizParameters(
-        original_max_score=15.0,
-        new_max_score=10.0,
-        original_question_value=3.0
+def test_should_create_processed_response_given_valid_data():
+    """Test that ProcessedResponse can be created with valid data."""
+    # Arrange & Act
+    processed = ProcessedResponse(
+        team="Team A",
+        student_name="John Doe",
+        first_name="John",
+        last_name="Doe",
+        email="john.doe@example.com",
+        student_id="12345",
+        original_score=12.5,
+        responses={1: "Answer 1", 2: "Answer 2"},
+        question_scores={1: 2.5, 2: 3.0},
+        new_score=8.33,
+        question_new_scores={1: 1.67, 2: 2.0}
     )
     
-    # Create a sample DataFrame with missing values
-    data = {
-        "Score": [9.0],
-        "1_Response": ["Answer 1"],
-        "1_Score": [3.0],
-        "2_Response": ["Answer 2"],
-        "2_Score": [3.0],
-        "3_Response": ["Answer 3"],
-        "3_Score": [3.0]
-    }
-    df = pd.DataFrame(data)
-    
-    # Act
-    quiz_data = QuizData.from_dataframe(df, params)
-    
     # Assert
-    assert len(quiz_data.students) == 1
-    student = quiz_data.students[0]
-    assert student.team is None
-    assert student.student_name is None
-    assert student.original_score == 9.0
-    assert student.converted_score == 6.0  # 9 * (10/15) = 6
-    assert len(student.responses) == 3
-    assert len(student.scores) == 3
+    assert processed.team == "Team A"
+    assert processed.student_name == "John Doe"
+    assert processed.first_name == "John"
+    assert processed.last_name == "Doe"
+    assert processed.email == "john.doe@example.com"
+    assert processed.student_id == "12345"
+    assert processed.original_score == 12.5
+    assert processed.responses == {1: "Answer 1", 2: "Answer 2"}
+    assert processed.question_scores == {1: 2.5, 2: 3.0}
+    assert processed.new_score == 8.33
+    assert processed.question_new_scores == {1: 1.67, 2: 2.0}

@@ -1,32 +1,28 @@
-from fastapi import APIRouter, Request, Form, UploadFile, File, Depends, HTTPException
+"""
+Router for quiz-related endpoints.
+"""
+from fastapi import APIRouter, Request, UploadFile, File, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from typing import Optional, List, Dict, Any
+from typing import List, Optional
+import pandas as pd
 import os
-import tempfile
-from app.services.file_service import FileService
-from app.services.quiz_service import QuizService
-from app.models.quiz_data import QuizParameters, QuizData
+from pathlib import Path
 
-router = APIRouter()
+from app.models.quiz_data import QuizParameters
+from app.services.file_service import process_file
+from app.services.quiz_service import convert_scores, verify_conversion, generate_output_data
 
-# Setup templates
+# Create router with prefix
+router = APIRouter(prefix="/quiz")
+
+# Set up templates
 templates = Jinja2Templates(directory="app/templates")
-
-# In-memory storage for quiz data (in a real app, this would be a database or session)
-_quiz_data: Optional[QuizData] = None
-
-
-def get_quiz_data_from_session() -> QuizData:
-    """Get quiz data from session."""
-    if _quiz_data is None:
-        raise HTTPException(status_code=404, detail="No quiz data found. Please upload a file first.")
-    return _quiz_data
 
 
 @router.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    """Render the home page."""
+async def index(request: Request):
+    """Render the index page."""
     return templates.TemplateResponse("index.html", {"request": request})
 
 
@@ -40,70 +36,93 @@ async def upload_form(request: Request):
 async def upload_file(
     request: Request,
     file: UploadFile = File(...),
+    quiz_name: str = Form(...),
     original_max_score: float = Form(...),
     new_max_score: float = Form(...),
     original_question_value: float = Form(...)
 ):
-    """Process the uploaded file and quiz parameters."""
-    global _quiz_data
-    
-    # Create quiz parameters
-    params = QuizParameters(
-        original_max_score=original_max_score,
-        new_max_score=new_max_score,
-        original_question_value=original_question_value
-    )
-    
-    # Verify calculation
-    if not QuizService.verify_calculation(params):
-        return templates.TemplateResponse(
-            "upload.html", 
-            {
-                "request": request, 
-                "error": "Invalid parameters. Please check that the original maximum score is divisible by the original question value."
-            }
-        )
-    
-    # Save uploaded file to a temporary file
-    with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as temp_file:
-        temp_file_path = temp_file.name
-        content = await file.read()
-        temp_file.write(content)
-    
+    """
+    Handle file upload and quiz parameter submission.
+
+    Args:
+        request: The request object
+        file: The uploaded file
+        quiz_name: Name of the quiz
+        original_max_score: Original maximum quiz score
+        new_max_score: New desired maximum score
+        original_question_value: Value of each question on the original scale
+
+    Returns:
+        Redirect to results page
+    """
     try:
-        # Read the file
-        df = FileService.read_file(temp_file_path)
-        
-        # Process the data
-        _quiz_data = QuizService.process_dataframe(df, params)
-        
-        # Redirect to results page
-        return RedirectResponse(url="/results", status_code=303)
+        # Create quiz parameters
+        quiz_params = QuizParameters(
+            quiz_name=quiz_name,
+            original_max_score=original_max_score,
+            new_max_score=new_max_score,
+            original_question_value=original_question_value
+        )
+
+        # Verify calculation
+        if not quiz_params.verify_calculation():
+            raise HTTPException(
+                status_code=400, 
+                detail="Calculation verification failed. Please check your parameters."
+            )
+
+        # Process the file
+        student_responses, question_numbers = await process_file(file)
+
+        # Convert scores
+        processed_responses = convert_scores(student_responses, quiz_params)
+
+        # Verify conversion
+        if not verify_conversion(processed_responses):
+            raise HTTPException(
+                status_code=400, 
+                detail="Conversion verification failed. Please check your data."
+            )
+
+        # Generate output data
+        output_data = generate_output_data(processed_responses, question_numbers)
+
+        # Debug: Print output data
+        print("Output data to be passed to template:")
+        for i, student in enumerate(output_data):
+            print(f"Student {i+1}:")
+            for key, value in student.items():
+                print(f"  {key}: {value}")
+
+        # Debug: Print question numbers
+        print("Question numbers to be passed to template:", question_numbers)
+
+        # Store data in session or temporary storage
+        # For simplicity, we'll pass it directly to the template
+        return templates.TemplateResponse(
+            "results.html", 
+            {
+                "request": request,
+                "quiz_params": quiz_params,
+                "output_data": output_data,
+                "question_numbers": question_numbers
+            }
+        )
+
     except Exception as e:
+        # Handle errors
         return templates.TemplateResponse(
             "upload.html", 
             {
-                "request": request, 
-                "error": f"Error processing file: {str(e)}"
+                "request": request,
+                "error": str(e)
             }
         )
-    finally:
-        # Clean up the temporary file
-        if os.path.exists(temp_file_path):
-            os.unlink(temp_file_path)
 
 
 @router.get("/results", response_class=HTMLResponse)
-async def results(request: Request, quiz_data: QuizData = Depends(get_quiz_data_from_session)):
-    """Display the results of the quiz score conversion."""
-    # Get question numbers
-    question_numbers = sorted(list(quiz_data.students[0].responses.keys())) if quiz_data.students else []
-    
-    return templates.TemplateResponse(
-        "results.html", 
-        {
-            "request": request, 
-            "quiz_data": quiz_data,
-            "question_numbers": question_numbers
-        }
-    )
+async def results(request: Request):
+    """Render the results page."""
+    # This endpoint would normally retrieve data from session or storage
+    # For now, it just redirects to the upload form
+    return RedirectResponse(url="/quiz/upload")

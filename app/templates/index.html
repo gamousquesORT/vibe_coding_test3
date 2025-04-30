@@ -1,38 +1,40 @@
 {% extends "base.html" %}
 
-{% block title %}Home - Quiz Grades Processor{% endblock %}
-
-{% block header %}Welcome to Quiz Grades Processor{% endblock %}
+{% block title %}Home - Quiz Score Processor{% endblock %}
 
 {% block content %}
 <div class="row">
     <div class="col-md-8 offset-md-2">
         <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h2 class="mb-0">Welcome to Quiz Score Processor</h2>
+            </div>
             <div class="card-body">
-                <h2 class="card-title">About This Application</h2>
-                <p class="card-text">
-                    This application helps you process quiz grades from Excel or CSV files and convert scores from one scale to another.
+                <p class="lead">
+                    This application helps you convert quiz scores from one scale to another.
                 </p>
-                
-                <h3>Features:</h3>
+
+                <h4>Features:</h4>
                 <ul>
                     <li>Upload Excel or CSV files containing quiz data</li>
-                    <li>Convert quiz scores from one scale to another</li>
-                    <li>View detailed information about student responses and scores</li>
-                    <li>See the converted scores for each student</li>
+                    <li>Convert scores from original scale to a new scale</li>
+                    <li>View detailed breakdown of scores for each student</li>
+                    <li>Verify score conversion accuracy</li>
                 </ul>
-                
-                <h3>How to Use:</h3>
+
+                <h4>How to use:</h4>
                 <ol>
-                    <li>Click on the "Upload File" button below or in the navigation bar</li>
-                    <li>Select your Excel or CSV file containing quiz data</li>
-                    <li>Enter the original maximum score, new maximum score, and original question value</li>
-                    <li>Submit the form to process the data</li>
-                    <li>View the results showing the converted scores</li>
+                    <li>Prepare your Excel or CSV file with quiz data</li>
+                    <li>Click on the "Upload" button below</li>
+                    <li>Fill in the quiz parameters (name, original max score, new max score, etc.)</li>
+                    <li>Upload your file and submit</li>
+                    <li>View the converted scores and details</li>
                 </ol>
-                
+
                 <div class="text-center mt-4">
-                    <a href="/upload" class="btn btn-primary btn-lg">Upload File</a>
+                    <a href="/quiz/upload" class="btn btn-primary btn-lg">
+                        <i class="bi bi-upload"></i> Upload Quiz Data
+                    </a>
                 </div>
             </div>
         </div>
