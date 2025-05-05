@@ -200,7 +200,76 @@ def display_results(quiz_params: QuizParameters, output_data: List[Dict[str, Any
             row += f" | {response:<8} | {orig_score:<9} | {conv_score:<9}"
         print(row)
 
-def export_to_csv(quiz_params: QuizParameters, output_data: List[Dict[str, Any]], question_numbers: List[int]):
+def get_output_folder() -> str:
+    """
+    Ask the user for the output folder and validate it.
+
+    Returns:
+        Path to the output folder
+    """
+    while True:
+        folder_path = input("\nOutput folder path (leave empty for current directory): ").strip()
+
+        # Use current directory if empty
+        if not folder_path:
+            return ""
+
+        # Check if the path exists and is a directory
+        path = Path(folder_path)
+        if not path.exists():
+            create = input(f"Folder '{folder_path}' does not exist. Create it? (y/n): ").lower()
+            if create == 'y':
+                try:
+                    path.mkdir(parents=True, exist_ok=True)
+                    print(f"Folder '{folder_path}' created successfully.")
+                    return folder_path
+                except Exception as e:
+                    print(f"Error creating folder: {str(e)}")
+                    continue
+            else:
+                continue
+        elif not path.is_dir():
+            print(f"Error: '{folder_path}' is not a directory.")
+            continue
+
+        # Check if the directory is writable
+        try:
+            # Try to create a temporary file to check if the directory is writable
+            temp_file = path / ".write_test"
+            temp_file.touch()
+            temp_file.unlink()  # Remove the test file
+            return folder_path
+        except Exception:
+            print(f"Error: Cannot write to '{folder_path}'. Please check permissions.")
+            continue
+
+def export_to_excel(quiz_params: QuizParameters, output_data: List[Dict[str, Any]], question_numbers: List[int], output_folder: str = ""):
+    """
+    Export the results to an Excel file.
+
+    Args:
+        quiz_params: Quiz parameters
+        output_data: List of dictionaries with formatted output data
+        question_numbers: List of question numbers
+        output_folder: Folder where to save the file (default: current directory)
+    """
+    filename = f"{quiz_params.quiz_name}.xlsx"
+
+    # Combine output folder with filename if provided
+    if output_folder:
+        file_path = Path(output_folder) / filename
+    else:
+        file_path = Path(filename)
+
+    # Convert the output data to a pandas DataFrame
+    df = pd.DataFrame(output_data)
+
+    # Export to Excel
+    df.to_excel(file_path, index=False)
+
+    print(f"\nResults exported to {file_path}")
+
+def export_to_csv(quiz_params: QuizParameters, output_data: List[Dict[str, Any]], question_numbers: List[int], output_folder: str = ""):
     """
     Export the results to a CSV file.
 
@@ -208,10 +277,17 @@ def export_to_csv(quiz_params: QuizParameters, output_data: List[Dict[str, Any]]
         quiz_params: Quiz parameters
         output_data: List of dictionaries with formatted output data
         question_numbers: List of question numbers
+        output_folder: Folder where to save the file (default: current directory)
     """
     filename = f"{quiz_params.quiz_name}.csv"
 
-    with open(filename, 'w', newline='') as csvfile:
+    # Combine output folder with filename if provided
+    if output_folder:
+        file_path = Path(output_folder) / filename
+    else:
+        file_path = Path(filename)
+
+    with open(file_path, 'w', newline='') as csvfile:
         # Determine all possible fields
         fieldnames = ['Team', 'Student Name', 'First Name', 'Last Name', 'Student ID', 'Original Score', 'Converted Score']
         for q_num in question_numbers:
@@ -223,7 +299,7 @@ def export_to_csv(quiz_params: QuizParameters, output_data: List[Dict[str, Any]]
         for student in output_data:
             writer.writerow(student)
 
-    print(f"\nResults exported to {filename}")
+    print(f"\nResults exported to {file_path}")
 
 def main():
     """Main function for the console application."""
@@ -338,9 +414,22 @@ def main():
             # Display results
             display_results(quiz_params, output_data, question_numbers)
 
-            # Ask if user wants to export to CSV
-            if input("\nDo you want to export the results to a CSV file? (y/n): ").lower() == 'y':
-                export_to_csv(quiz_params, output_data, question_numbers)
+            # Ask if user wants to export the results
+            if input("\nDo you want to export the results to a file? (y/n): ").lower() == 'y':
+                # Get the output folder
+                output_folder = get_output_folder()
+
+                # Ask for the export format
+                while True:
+                    export_format = input("Choose export format (1 for CSV, 2 for Excel): ")
+                    if export_format == "1":
+                        export_to_csv(quiz_params, output_data, question_numbers, output_folder)
+                        break
+                    elif export_format == "2":
+                        export_to_excel(quiz_params, output_data, question_numbers, output_folder)
+                        break
+                    else:
+                        print("Invalid choice. Please enter 1 for CSV or 2 for Excel.")
 
             # Ask if user wants to process another file
             if input("\nDo you want to process another file? (y/n): ").lower() == 'y':
