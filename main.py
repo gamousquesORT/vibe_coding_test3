@@ -166,6 +166,22 @@ def display_results(quiz_params: QuizParameters, output_data: List[Dict[str, Any
     print(f"Total Questions: {quiz_params.total_questions}")
     print(f"New Question Value: {quiz_params.new_question_value}")
 
+    # Display weighted question information if applicable
+    if quiz_params.use_weighted_questions:
+        print("\nWEIGHTED QUESTIONS:")
+        print("-"*80)
+        print(f"{'Question':<10} {'Weight':<10} {'% of Total':<15} {'New Max Score':<15}")
+        print("-"*80)
+
+        total_weight = sum(quiz_params.question_weights.values())
+        for q_num in sorted(quiz_params.question_weights.keys()):
+            weight = quiz_params.question_weights[q_num]
+            percentage = (weight / total_weight) * 100
+            new_max = (weight / total_weight) * quiz_params.new_max_score
+            print(f"{q_num:<10} {weight:<10.2f} {percentage:<15.2f}% {new_max:<15.2f}")
+
+        print(f"{'Total':<10} {total_weight:<10.2f} {'100.00':<15}% {quiz_params.new_max_score:<15.2f}")
+
     print("\nVERIFICATION:")
     print(f"Total Questions × New Question Value = New Maximum Score")
     print(f"{quiz_params.total_questions} × {quiz_params.new_question_value} = {quiz_params.total_questions * quiz_params.new_question_value}")
@@ -200,7 +216,76 @@ def display_results(quiz_params: QuizParameters, output_data: List[Dict[str, Any
             row += f" | {response:<8} | {orig_score:<9} | {conv_score:<9}"
         print(row)
 
-def export_to_csv(quiz_params: QuizParameters, output_data: List[Dict[str, Any]], question_numbers: List[int]):
+def get_output_folder() -> str:
+    """
+    Ask the user for the output folder and validate it.
+
+    Returns:
+        Path to the output folder
+    """
+    while True:
+        folder_path = input("\nOutput folder path (leave empty for current directory): ").strip()
+
+        # Use current directory if empty
+        if not folder_path:
+            return ""
+
+        # Check if the path exists and is a directory
+        path = Path(folder_path)
+        if not path.exists():
+            create = input(f"Folder '{folder_path}' does not exist. Create it? (y/n): ").lower()
+            if create == 'y':
+                try:
+                    path.mkdir(parents=True, exist_ok=True)
+                    print(f"Folder '{folder_path}' created successfully.")
+                    return folder_path
+                except Exception as e:
+                    print(f"Error creating folder: {str(e)}")
+                    continue
+            else:
+                continue
+        elif not path.is_dir():
+            print(f"Error: '{folder_path}' is not a directory.")
+            continue
+
+        # Check if the directory is writable
+        try:
+            # Try to create a temporary file to check if the directory is writable
+            temp_file = path / ".write_test"
+            temp_file.touch()
+            temp_file.unlink()  # Remove the test file
+            return folder_path
+        except Exception:
+            print(f"Error: Cannot write to '{folder_path}'. Please check permissions.")
+            continue
+
+def export_to_excel(quiz_params: QuizParameters, output_data: List[Dict[str, Any]], question_numbers: List[int], output_folder: str = ""):
+    """
+    Export the results to an Excel file.
+
+    Args:
+        quiz_params: Quiz parameters
+        output_data: List of dictionaries with formatted output data
+        question_numbers: List of question numbers
+        output_folder: Folder where to save the file (default: current directory)
+    """
+    filename = f"{quiz_params.quiz_name}.xlsx"
+
+    # Combine output folder with filename if provided
+    if output_folder:
+        file_path = Path(output_folder) / filename
+    else:
+        file_path = Path(filename)
+
+    # Convert the output data to a pandas DataFrame
+    df = pd.DataFrame(output_data)
+
+    # Export to Excel
+    df.to_excel(file_path, index=False)
+
+    print(f"\nResults exported to {file_path}")
+
+def export_to_csv(quiz_params: QuizParameters, output_data: List[Dict[str, Any]], question_numbers: List[int], output_folder: str = ""):
     """
     Export the results to a CSV file.
 
@@ -208,10 +293,17 @@ def export_to_csv(quiz_params: QuizParameters, output_data: List[Dict[str, Any]]
         quiz_params: Quiz parameters
         output_data: List of dictionaries with formatted output data
         question_numbers: List of question numbers
+        output_folder: Folder where to save the file (default: current directory)
     """
     filename = f"{quiz_params.quiz_name}.csv"
 
-    with open(filename, 'w', newline='') as csvfile:
+    # Combine output folder with filename if provided
+    if output_folder:
+        file_path = Path(output_folder) / filename
+    else:
+        file_path = Path(filename)
+
+    with open(file_path, 'w', newline='') as csvfile:
         # Determine all possible fields
         fieldnames = ['Team', 'Student Name', 'First Name', 'Last Name', 'Student ID', 'Original Score', 'Converted Score']
         for q_num in question_numbers:
@@ -223,7 +315,7 @@ def export_to_csv(quiz_params: QuizParameters, output_data: List[Dict[str, Any]]
         for student in output_data:
             writer.writerow(student)
 
-    print(f"\nResults exported to {filename}")
+    print(f"\nResults exported to {file_path}")
 
 def main():
     """Main function for the console application."""
@@ -268,13 +360,70 @@ def main():
                 print("\nExiting application.")
                 return
 
-        # Create quiz parameters
+        # Ask if user wants to use weighted questions
+        use_weighted_questions = input("\nDo you want to assign different weights to questions? (y/n): ").lower() == 'y'
+
+        # Create quiz parameters with default values
         quiz_params = QuizParameters(
             quiz_name=quiz_name,
             original_max_score=original_max_score,
             new_max_score=new_max_score,
-            original_question_value=original_question_value
+            original_question_value=original_question_value,
+            use_weighted_questions=use_weighted_questions
         )
+
+        # If using weighted questions, get the weights
+        if use_weighted_questions:
+            print("\nYou'll now be asked to enter weights for each question.")
+            print("Weights determine the relative importance of each question.")
+            print("For example, if question 1 has weight 2 and question 2 has weight 1,")
+            print("question 1 will be worth twice as much as question 2 in the final score.")
+
+            # Get the number of questions
+            try:
+                num_questions = int(input("\nHow many questions are in the quiz? "))
+                if num_questions <= 0:
+                    raise ValueError("Number of questions must be greater than zero.")
+            except ValueError:
+                print("Invalid input. Using calculated number of questions.")
+                num_questions = int(quiz_params.total_questions)
+                print(f"Calculated number of questions: {num_questions}")
+
+            # Get weights for each question
+            question_weights = {}
+            for i in range(1, num_questions + 1):
+                try:
+                    weight = float(input(f"Weight for question {i}: "))
+                    if weight <= 0:
+                        print("Weight must be greater than zero. Using default weight of 1.")
+                        weight = 1.0
+                    question_weights[i] = weight
+                except ValueError:
+                    print("Invalid input. Using default weight of 1.")
+                    question_weights[i] = 1.0
+
+            # Update quiz parameters with question weights
+            quiz_params.question_weights = question_weights
+
+            print("\nQuestion weights:")
+            for q_num, weight in question_weights.items():
+                print(f"Question {q_num}: {weight}")
+
+            # Calculate and display the total weight
+            total_weight = sum(question_weights.values())
+            print(f"Total weight: {total_weight}")
+
+            # Calculate and display the percentage of total for each question
+            print("\nPercentage of total for each question:")
+            for q_num, weight in question_weights.items():
+                percentage = (weight / total_weight) * 100
+                print(f"Question {q_num}: {percentage:.2f}%")
+
+            # Calculate and display the new maximum score for each question
+            print("\nNew maximum score for each question:")
+            for q_num, weight in question_weights.items():
+                new_max = (weight / total_weight) * quiz_params.new_max_score
+                print(f"Question {q_num}: {new_max:.2f}")
 
         # Verify calculation
         if not quiz_params.verify_calculation():
@@ -321,7 +470,7 @@ def main():
             processed_responses = convert_scores(student_responses, quiz_params)
 
             # Verify conversion
-            if not verify_conversion(processed_responses):
+            if not verify_conversion(processed_responses, quiz_params):
                 print("\nWarning: Conversion verification failed. Please check your data.")
                 choice = input("Do you want to (c)ontinue anyway, (r)estart with new parameters, or (q)uit? (c/r/q): ").lower()
                 if choice == 'r':
@@ -338,9 +487,22 @@ def main():
             # Display results
             display_results(quiz_params, output_data, question_numbers)
 
-            # Ask if user wants to export to CSV
-            if input("\nDo you want to export the results to a CSV file? (y/n): ").lower() == 'y':
-                export_to_csv(quiz_params, output_data, question_numbers)
+            # Ask if user wants to export the results
+            if input("\nDo you want to export the results to a file? (y/n): ").lower() == 'y':
+                # Get the output folder
+                output_folder = get_output_folder()
+
+                # Ask for the export format
+                while True:
+                    export_format = input("Choose export format (1 for CSV, 2 for Excel): ")
+                    if export_format == "1":
+                        export_to_csv(quiz_params, output_data, question_numbers, output_folder)
+                        break
+                    elif export_format == "2":
+                        export_to_excel(quiz_params, output_data, question_numbers, output_folder)
+                        break
+                    else:
+                        print("Invalid choice. Please enter 1 for CSV or 2 for Excel.")
 
             # Ask if user wants to process another file
             if input("\nDo you want to process another file? (y/n): ").lower() == 'y':
