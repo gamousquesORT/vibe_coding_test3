@@ -5,6 +5,7 @@ from app.models.quiz_data import QuizParameters, StudentResponse, ProcessedRespo
 from app.services.quiz_service import convert_scores, generate_output_data
 from app.services.file_handler import FileHandler
 from app.services.user_interface import UserInterface
+from app.services.db_service import DatabaseService
 
 
 def main():
@@ -52,6 +53,14 @@ def main():
 
             # Display results
             UserInterface.display_results(quiz_params, output_data, question_numbers)
+
+            # Store results in the database
+            try:
+                DatabaseService.store_quiz_data(quiz_params, processed_responses, question_numbers)
+                print("Quiz data has been stored in the database.")
+            except Exception as e:
+                print(f"Warning: Failed to store data in database: {str(e)}")
+                print("Continuing with file export...")
 
             # Ask if user wants to export the results
             if UserInterface.ask_export():

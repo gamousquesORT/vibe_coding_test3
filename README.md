@@ -8,7 +8,8 @@ A console application for processing quiz grades from Excel or CSV files and con
 - Convert scores from original scale to a new scale
 - Display detailed breakdown of scores for each student
 - Verify score conversion accuracy
-- Export results to CSV
+- Automatically store quiz data in SQLite database
+- Export results to CSV or Excel
 
 ## Requirements
 
@@ -52,7 +53,9 @@ A console application for processing quiz grades from Excel or CSV files and con
 
 3. The application will process the file and display the results
 
-4. You can choose to export the results to a CSV file
+4. Quiz data is automatically stored in a SQLite database
+
+5. You can choose to export the results to a CSV or Excel file
 
 ## File Format
 
@@ -68,6 +71,19 @@ The data should contain the following columns:
 - Student ID
 - Score
 - Question responses and scores (e.g., 1_Response, 1_Score, 2_Response, 2_Score, etc.)
+
+## Database
+
+The application automatically stores all processed quiz data in a SQLite database located in the `data/quiz_scores.db` file. The database is created automatically if it doesn't exist.
+
+The database schema includes the following tables:
+
+- **quizzes**: Stores quiz parameters (name, scoring scales, etc.)
+- **question_weights**: Stores weights for individual questions when using weighted questions
+- **students**: Stores student information and overall scores
+- **question_responses**: Stores per-question responses and scores
+
+This allows for persistent storage of all quiz data processed by the application, which can be useful for later analysis or reporting.
 
 ## Testing
 
