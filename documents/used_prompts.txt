@@ -1,0 +1,1 @@
+I want to code an app for the requirements contained in the requirments.md file using the instructions on the AI_instructions.md file

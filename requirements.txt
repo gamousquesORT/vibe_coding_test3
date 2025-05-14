@@ -1,0 +1,13 @@
+# Quiz Score Processor Dependencies
+
+# Data Processing
+pandas==2.0.0
+openpyxl==3.1.2  # For Excel file support
+xlrd==2.0.1      # For older Excel file formats
+
+# Testing
+pytest==7.3.1
+pytest-asyncio==0.21.0
+
+# Type Checking
+pydantic==1.10.7

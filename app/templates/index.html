@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Quiz Score Processor{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h2 class="mb-0">Welcome to Quiz Score Processor</h2>
+            </div>
+            <div class="card-body">
+                <p class="lead">
+                    This application helps you convert quiz scores from one scale to another.
+                </p>
+
+                <h4>Features:</h4>
+                <ul>
+                    <li>Upload Excel or CSV files containing quiz data</li>
+                    <li>Convert scores from original scale to a new scale</li>
+                    <li>View detailed breakdown of scores for each student</li>
+                    <li>Verify score conversion accuracy</li>
+                </ul>
+
+                <h4>How to use:</h4>
+                <ol>
+                    <li>Prepare your Excel or CSV file with quiz data</li>
+                    <li>Click on the "Upload" button below</li>
+                    <li>Fill in the quiz parameters (name, original max score, new max score, etc.)</li>
+                    <li>Upload your file and submit</li>
+                    <li>View the converted scores and details</li>
+                </ol>
+
+                <div class="text-center mt-4">
+                    <a href="/quiz/upload" class="btn btn-primary btn-lg">
+                        <i class="bi bi-upload"></i> Upload Quiz Data
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
