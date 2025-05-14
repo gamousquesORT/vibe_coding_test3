@@ -12,7 +12,7 @@ from app.models.quiz_data import QuizParameters, StudentResponse
 
 class FileHandler:
     """Class for handling file import and export operations."""
-    
+
     @staticmethod
     def process_file(file_path: str) -> tuple:
         """
@@ -37,9 +37,18 @@ class FileHandler:
                     df = pd.read_excel(file_path, sheet_name="Team Analysis")
                     print("Reading data from 'Team Analysis' sheet...")
                 except ValueError as e:
-                    # If the sheet doesn't exist, inform the user and raise an error
+                    # If the Team Analysis sheet doesn't exist, try Student Analysis sheet
                     if "Worksheet named 'Team Analysis' not found" in str(e):
-                        raise ValueError("The 'Team Analysis' sheet was not found in the Excel file.")
+                        try:
+                            # Try to read from the "Student Analysis" sheet
+                            df = pd.read_excel(file_path, sheet_name="Student Analysis")
+                            print("Reading data from 'Student Analysis' sheet...")
+                        except ValueError as e2:
+                            # If neither sheet exists, inform the user and raise an error
+                            if "Worksheet named 'Student Analysis' not found" in str(e2):
+                                raise ValueError("Neither 'Team Analysis' nor 'Student Analysis' sheets were found in the Excel file.")
+                            else:
+                                raise e2
                     else:
                         raise
             elif file_path.suffix.lower() == '.csv':

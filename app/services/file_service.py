@@ -46,7 +46,26 @@ async def process_file(file: UploadFile) -> Tuple[List[StudentResponse], List[in
     try:
         # Determine file type and read accordingly
         if temp_file.suffix.lower() in ['.xlsx', '.xls']:
-            df = pd.read_excel(temp_file)
+            try:
+                # Try to read from the "Team Analysis" sheet
+                df = pd.read_excel(temp_file, sheet_name="Team Analysis")
+                print("Reading data from 'Team Analysis' sheet...")
+            except ValueError as e:
+                # If the Team Analysis sheet doesn't exist, try Student Analysis sheet
+                if "Worksheet named 'Team Analysis' not found" in str(e):
+                    try:
+                        # Try to read from the "Student Analysis" sheet
+                        df = pd.read_excel(temp_file, sheet_name="Student Analysis")
+                        print("Reading data from 'Student Analysis' sheet...")
+                    except ValueError as e2:
+                        # If neither sheet exists, try the first sheet
+                        if "Worksheet named 'Student Analysis' not found" in str(e2):
+                            df = pd.read_excel(temp_file)
+                            print("Reading data from the first sheet...")
+                        else:
+                            raise e2
+                else:
+                    raise
         elif temp_file.suffix.lower() == '.csv':
             df = pd.read_csv(temp_file)
         else:
