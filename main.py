@@ -36,7 +36,7 @@ def main():
         try:
             # Process the file
             print("\nProcessing file...")
-            student_responses, question_numbers = FileHandler.process_file(file_path)
+            student_responses, question_numbers, sheet_name = FileHandler.process_file(file_path)
 
             # Convert scores
             print("Converting scores...")
@@ -59,7 +59,7 @@ def main():
 
             # Export to Excel by default
             print("\nAutomatically exporting results to Excel...")
-            FileHandler.export_to_excel(quiz_params, output_data, question_numbers, output_folder)
+            FileHandler.export_to_excel(quiz_params, output_data, question_numbers, output_folder, sheet_name)
 
             # Ask if user wants to process another file
             if UserInterface.ask_process_another():

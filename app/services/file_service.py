@@ -32,7 +32,7 @@ async def save_upload_file_temp(upload_file: UploadFile) -> Path:
         raise Exception("Failed to save file")
 
 
-async def process_file(file: UploadFile) -> Tuple[List[StudentResponse], List[int]]:
+async def process_file(file: UploadFile) -> Tuple[List[StudentResponse], List[int], str]:
     """
     Process the uploaded Excel/CSV file and extract student responses.
 
@@ -40,15 +40,17 @@ async def process_file(file: UploadFile) -> Tuple[List[StudentResponse], List[in
         file: The uploaded file
 
     Returns:
-        Tuple containing list of student responses and list of question numbers
+        Tuple containing list of student responses, list of question numbers, and sheet name (if applicable)
     """
     temp_file = await save_upload_file_temp(file)
     try:
         # Determine file type and read accordingly
+        sheet_name = None
         if temp_file.suffix.lower() in ['.xlsx', '.xls']:
             try:
                 # Try to read from the "Team Analysis" sheet
                 df = pd.read_excel(temp_file, sheet_name="Team Analysis")
+                sheet_name = "Team Analysis"
                 print("Reading data from 'Team Analysis' sheet...")
             except ValueError as e:
                 # If the Team Analysis sheet doesn't exist, try Student Analysis sheet
@@ -56,12 +58,17 @@ async def process_file(file: UploadFile) -> Tuple[List[StudentResponse], List[in
                     try:
                         # Try to read from the "Student Analysis" sheet
                         df = pd.read_excel(temp_file, sheet_name="Student Analysis")
+                        sheet_name = "Student Analysis"
                         print("Reading data from 'Student Analysis' sheet...")
                     except ValueError as e2:
                         # If neither sheet exists, try the first sheet
                         if "Worksheet named 'Student Analysis' not found" in str(e2):
-                            df = pd.read_excel(temp_file)
-                            print("Reading data from the first sheet...")
+                            # Get the first sheet name
+                            xl = pd.ExcelFile(temp_file)
+                            first_sheet_name = xl.sheet_names[0]
+                            df = pd.read_excel(temp_file, sheet_name=first_sheet_name)
+                            sheet_name = first_sheet_name
+                            print(f"Reading data from the first sheet: '{first_sheet_name}'...")
                         else:
                             raise e2
                 else:
@@ -72,7 +79,8 @@ async def process_file(file: UploadFile) -> Tuple[List[StudentResponse], List[in
             raise ValueError("Unsupported file format. Please upload an Excel or CSV file.")
 
         # Process the dataframe
-        return process_dataframe(df)
+        student_responses, question_numbers = process_dataframe(df)
+        return student_responses, question_numbers, sheet_name
     finally:
         # Clean up the temp file
         os.unlink(temp_file)
