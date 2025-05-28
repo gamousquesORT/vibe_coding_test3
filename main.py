@@ -36,7 +36,7 @@ def main():
         try:
             # Process the file
             print("\nProcessing file...")
-            student_responses, question_numbers = FileHandler.process_file(file_path)
+            student_responses, question_numbers, sheet_name = FileHandler.process_file(file_path)
 
             # Convert scores
             print("Converting scores...")
@@ -53,17 +53,13 @@ def main():
             # Display results
             UserInterface.display_results(quiz_params, output_data, question_numbers)
 
-            # Ask if user wants to export the results
-            if UserInterface.ask_export():
-                # Get the output folder
-                output_folder = FileHandler.get_output_folder()
+            # Automatically export the results after processing each file
+            # Get the output folder
+            output_folder = FileHandler.get_output_folder()
 
-                # Ask for the export format
-                export_format = UserInterface.get_export_format()
-                if export_format == "csv":
-                    FileHandler.export_to_csv(quiz_params, output_data, question_numbers, output_folder)
-                else:  # excel
-                    FileHandler.export_to_excel(quiz_params, output_data, question_numbers, output_folder)
+            # Export to Excel by default
+            print("\nAutomatically exporting results to Excel...")
+            FileHandler.export_to_excel(quiz_params, output_data, question_numbers, output_folder, sheet_name)
 
             # Ask if user wants to process another file
             if UserInterface.ask_process_another():

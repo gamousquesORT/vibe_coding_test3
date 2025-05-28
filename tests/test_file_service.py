@@ -41,15 +41,15 @@ def test_should_process_dataframe_given_valid_dataframe(sample_dataframe):
     """Test that dataframe is processed correctly."""
     # Arrange
     df = sample_dataframe
-    
+
     # Act
     student_responses, question_numbers = process_dataframe(df)
-    
+
     # Assert
     assert len(student_responses) == 2
     assert len(question_numbers) == 5
     assert question_numbers == [1, 2, 3, 4, 5]
-    
+
     # Check first student
     student1 = student_responses[0]
     assert student1.team == "Team A"
@@ -61,7 +61,7 @@ def test_should_process_dataframe_given_valid_dataframe(sample_dataframe):
     assert student1.original_score == 12
     assert student1.responses[1] == "Answer 1.1"
     assert student1.question_scores[1] == 3
-    
+
     # Check second student
     student2 = student_responses[1]
     assert student2.team == "Team B"
@@ -83,15 +83,15 @@ async def test_should_save_upload_file_temp_given_valid_file():
     mock_file = AsyncMock(spec=UploadFile)
     mock_file.filename = "test.xlsx"
     mock_file.read.return_value = mock_content
-    
+
     # Mock the tempfile.NamedTemporaryFile context manager
     mock_temp_file = MagicMock()
     mock_temp_file.name = "/tmp/test_temp_file.xlsx"
-    
+
     # Act
     with patch("tempfile.NamedTemporaryFile", return_value=mock_temp_file):
         result = await save_upload_file_temp(mock_file)
-    
+
     # Assert
     assert isinstance(result, Path)
     assert str(result) == "/tmp/test_temp_file.xlsx"
@@ -105,10 +105,10 @@ async def test_should_process_excel_file_given_valid_upload():
     # Arrange
     mock_file = AsyncMock(spec=UploadFile)
     mock_file.filename = "test.xlsx"
-    
+
     # Mock the save_upload_file_temp function
     mock_temp_path = Path("/tmp/test_temp_file.xlsx")
-    
+
     # Create a sample dataframe
     df = pd.DataFrame({
         'Team': ['Team A'],
@@ -121,25 +121,80 @@ async def test_should_process_excel_file_given_valid_upload():
         '1_Response': ['Answer 1'],
         '1_Score': [3]
     })
-    
+
     # Act
     with patch("app.services.file_service.save_upload_file_temp", return_value=mock_temp_path), \
          patch("pandas.read_excel", return_value=df), \
          patch("os.unlink") as mock_unlink:
         student_responses, question_numbers = await process_file(mock_file)
-    
+
     # Assert
     assert len(student_responses) == 1
     assert len(question_numbers) == 1
     assert question_numbers == [1]
-    
+
     student = student_responses[0]
     assert student.team == "Team A"
     assert student.student_name == "John Doe"
     assert student.original_score == 12
     assert student.responses[1] == "Answer 1"
     assert student.question_scores[1] == 3
-    
+
+    # Check that the temp file was deleted
+    mock_unlink.assert_called_once_with(mock_temp_path)
+
+
+@pytest.mark.asyncio
+async def test_should_process_excel_file_with_student_analysis_sheet():
+    """Test that Excel file with Student Analysis sheet is processed correctly."""
+    # Arrange
+    mock_file = AsyncMock(spec=UploadFile)
+    mock_file.filename = "test.xlsx"
+
+    # Mock the save_upload_file_temp function
+    mock_temp_path = Path("/tmp/test_temp_file.xlsx")
+
+    # Create a sample dataframe
+    df = pd.DataFrame({
+        'Team': ['Team A'],
+        'Student Name': ['John Doe'],
+        'First Name': ['John'],
+        'Last Name': ['Doe'],
+        'Email Address': ['john@example.com'],
+        'Student ID': [12345],
+        'Score': [12],
+        '1_Response': ['Answer 1'],
+        '1_Score': [3]
+    })
+
+    # Mock pandas.read_excel to raise ValueError for Team Analysis sheet
+    # but return df for Student Analysis sheet
+    def mock_read_excel(path, sheet_name=None):
+        if sheet_name == "Team Analysis":
+            raise ValueError("Worksheet named 'Team Analysis' not found")
+        elif sheet_name == "Student Analysis":
+            return df
+        else:
+            return df
+
+    # Act
+    with patch("app.services.file_service.save_upload_file_temp", return_value=mock_temp_path), \
+         patch("pandas.read_excel", side_effect=mock_read_excel), \
+         patch("os.unlink") as mock_unlink:
+        student_responses, question_numbers = await process_file(mock_file)
+
+    # Assert
+    assert len(student_responses) == 1
+    assert len(question_numbers) == 1
+    assert question_numbers == [1]
+
+    student = student_responses[0]
+    assert student.team == "Team A"
+    assert student.student_name == "John Doe"
+    assert student.original_score == 12
+    assert student.responses[1] == "Answer 1"
+    assert student.question_scores[1] == 3
+
     # Check that the temp file was deleted
     mock_unlink.assert_called_once_with(mock_temp_path)
 
@@ -150,10 +205,10 @@ async def test_should_process_csv_file_given_valid_upload():
     # Arrange
     mock_file = AsyncMock(spec=UploadFile)
     mock_file.filename = "test.csv"
-    
+
     # Mock the save_upload_file_temp function
     mock_temp_path = Path("/tmp/test_temp_file.csv")
-    
+
     # Create a sample dataframe
     df = pd.DataFrame({
         'Team': ['Team A'],
@@ -166,17 +221,17 @@ async def test_should_process_csv_file_given_valid_upload():
         '1_Response': ['Answer 1'],
         '1_Score': [3]
     })
-    
+
     # Act
     with patch("app.services.file_service.save_upload_file_temp", return_value=mock_temp_path), \
          patch("pandas.read_csv", return_value=df), \
          patch("os.unlink") as mock_unlink:
         student_responses, question_numbers = await process_file(mock_file)
-    
+
     # Assert
     assert len(student_responses) == 1
     assert len(question_numbers) == 1
-    
+
     # Check that the temp file was deleted
     mock_unlink.assert_called_once_with(mock_temp_path)
 
@@ -187,15 +242,15 @@ async def test_should_raise_error_given_unsupported_file_format():
     # Arrange
     mock_file = AsyncMock(spec=UploadFile)
     mock_file.filename = "test.txt"
-    
+
     # Mock the save_upload_file_temp function
     mock_temp_path = Path("/tmp/test_temp_file.txt")
-    
+
     # Act & Assert
     with patch("app.services.file_service.save_upload_file_temp", return_value=mock_temp_path), \
          patch("os.unlink") as mock_unlink, \
          pytest.raises(ValueError, match="Unsupported file format"):
         await process_file(mock_file)
-    
+
     # Check that the temp file was deleted even if an error occurred
     mock_unlink.assert_called_once_with(mock_temp_path)

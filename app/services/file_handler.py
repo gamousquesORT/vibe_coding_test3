@@ -12,7 +12,7 @@ from app.models.quiz_data import QuizParameters, StudentResponse
 
 class FileHandler:
     """Class for handling file import and export operations."""
-    
+
     @staticmethod
     def process_file(file_path: str) -> tuple:
         """
@@ -22,7 +22,7 @@ class FileHandler:
             file_path: Path to the file
 
         Returns:
-            Tuple containing list of student responses and list of question numbers
+            Tuple containing list of student responses, list of question numbers, and sheet name (if applicable)
         """
         try:
             # Check if file exists
@@ -31,15 +31,27 @@ class FileHandler:
                 raise FileNotFoundError(f"File not found: {file_path}")
 
             # Determine file type and read accordingly
+            sheet_name = None
             if file_path.suffix.lower() in ['.xlsx', '.xls']:
                 try:
                     # Try to read from the "Team Analysis" sheet
                     df = pd.read_excel(file_path, sheet_name="Team Analysis")
+                    sheet_name = "Team Analysis"
                     print("Reading data from 'Team Analysis' sheet...")
                 except ValueError as e:
-                    # If the sheet doesn't exist, inform the user and raise an error
+                    # If the Team Analysis sheet doesn't exist, try Student Analysis sheet
                     if "Worksheet named 'Team Analysis' not found" in str(e):
-                        raise ValueError("The 'Team Analysis' sheet was not found in the Excel file.")
+                        try:
+                            # Try to read from the "Student Analysis" sheet
+                            df = pd.read_excel(file_path, sheet_name="Student Analysis")
+                            sheet_name = "Student Analysis"
+                            print("Reading data from 'Student Analysis' sheet...")
+                        except ValueError as e2:
+                            # If neither sheet exists, inform the user and raise an error
+                            if "Worksheet named 'Student Analysis' not found" in str(e2):
+                                raise ValueError("Neither 'Team Analysis' nor 'Student Analysis' sheets were found in the Excel file.")
+                            else:
+                                raise e2
                     else:
                         raise
             elif file_path.suffix.lower() == '.csv':
@@ -52,7 +64,8 @@ class FileHandler:
                 raise ValueError("The file contains no data.")
 
             # Process the dataframe
-            return FileHandler.process_dataframe(df)
+            student_responses, question_numbers = FileHandler.process_dataframe(df)
+            return student_responses, question_numbers, sheet_name
 
         except pd.errors.EmptyDataError:
             raise ValueError("The file contains no data.")
@@ -199,7 +212,7 @@ class FileHandler:
 
     @staticmethod
     def export_to_excel(quiz_params: QuizParameters, output_data: List[Dict[str, Any]], 
-                        question_numbers: List[int], output_folder: str = ""):
+                        question_numbers: List[int], output_folder: str = "", sheet_name: str = None):
         """
         Export the results to an Excel file.
 
@@ -208,6 +221,7 @@ class FileHandler:
             output_data: List of dictionaries with formatted output data
             question_numbers: List of question numbers
             output_folder: Folder where to save the file (default: current directory)
+            sheet_name: Name of the sheet in the Excel file (default: None, which uses the default sheet name)
         """
         filename = f"{quiz_params.quiz_name}.xlsx"
 
@@ -221,7 +235,10 @@ class FileHandler:
         df = pd.DataFrame(output_data)
 
         # Export to Excel
-        df.to_excel(file_path, index=False)
+        if sheet_name:
+            df.to_excel(file_path, index=False, sheet_name=sheet_name)
+        else:
+            df.to_excel(file_path, index=False)
 
         print(f"\nResults exported to {file_path}")
 
