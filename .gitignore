@@ -361,4 +361,6 @@ products_vectorstore/
 #ingestion  data folder
 inputdata/
 outputdata/
+database/
+
 
